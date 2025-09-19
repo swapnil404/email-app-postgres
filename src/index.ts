@@ -13,20 +13,19 @@ app.use(logger());
 
 connectdb();
 
-app.get("/", (c) => c.text("Hello from your Email App!"));
-app.post("/user", async (c) => {
+app.post("/users", async (c) => {
   const userData = await c.req.json();
   const user = new User({ name: userData.name, email: userData.email });
   const newUser = await user.save();
   return c.json({ data: newUser });
 });
 
-app.get("/user", async (c) => {
+app.get("/users", async (c) => {
   const user = await User.find();
   return c.json({ data: user });
 });
 
-app.get("/user/:id", async (c) => {
+app.get("/users/:id", async (c) => {
   const id = c.req.param("id");
   const user = await User.findById(id);
   return c.json({ data: user });
