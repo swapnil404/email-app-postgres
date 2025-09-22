@@ -50,7 +50,7 @@ app.post("/login", async (c) => {
   return c.json({ token, user });
 });
 
-app.post("/emails/send", jwtMiddleware, async (c) => {
+app.post("/emails/send", jwtMiddleware, async (c) => {try {
   const emailData = await c.req.json();
   const payload = c.get("jwtPayload");
 
@@ -63,6 +63,10 @@ app.post("/emails/send", jwtMiddleware, async (c) => {
   });
   const newEmail = await email.save();
   return c.json({ data: newEmail });
+} catch (err) {
+  console.error("Email send error:", err);
+  return c.json({ error: "Failed to send email", details: String(err) }, 500);
+}
 });
 
 app.get("emails/inbox", jwtMiddleware, async (c) => {
