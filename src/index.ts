@@ -13,10 +13,6 @@ dotenv.config();
 
 const secret = process.env.JWT_SECRET!;
 
-if (!secret) {
-  throw new Error("JWT_SECRET is not set in .env");
-}
-
 const app = new Hono();
 
 const jwtMiddleware = jwt({
@@ -32,11 +28,10 @@ app.use("*", cors());
 app.post("/register", async (c) => {
   const { email, password } = await c.req.json();
   const users = User;
-
+ 
   const existing = await users.findOne({ email });
   if (existing) return c.json({ error: "User already exists" }, 400);
 
-  await users.insertOne({ email, password });
   const newUser = await users.insertOne({ email, password });
   return c.text("User registered, Please Login");
 });
@@ -49,7 +44,7 @@ app.post("/login", async (c) => {
   if (!user) return c.json({ error: "Invalid credentials" }, 401);
 
   if (user.password !== password)
-    return c.json({ error: "Invalid credentials" }, 401);
+    return c.json({ error: "Incorrect Password" }, 401);
 
   const token = await sign({ sub: email }, secret);
   return c.json({ token, user });
@@ -61,7 +56,6 @@ app.post("/emails/send", jwtMiddleware, async (c) => {
 
   const fromUserId = payload.sub;
   const email = new Email({
-    type: "Sent",
     to: emailData.to,
     from: fromUserId,
     subject: emailData.subject,
@@ -76,4 +70,5 @@ app.get("emails/inbox", jwtMiddleware, async (c) => {
   const emails = await Email.find({ to: payload.sub });
   return c.json({ data: emails });
 });
+
 serve(app);

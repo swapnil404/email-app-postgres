@@ -1,6 +1,5 @@
 import { Schema, model } from "mongoose";
 const emailSchema = new Schema({
-  type: {type:String},
   from: { type: String },
   to: { type: String },
   subject: { type: String },
