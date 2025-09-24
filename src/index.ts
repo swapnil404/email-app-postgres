@@ -5,9 +5,9 @@ import { logger } from "hono/logger";
 import { connectdb } from "./config.js";
 import { cors } from "hono/cors";
 import { jwt, sign } from "hono/jwt";
-
 import Email from "./models/email.js";
 import User from "./models/user.js";
+import bcrypt from "bcrypt";
 
 dotenv.config();
 
@@ -31,23 +31,23 @@ app.post("/register", async (c) => {
 
   const existing = await users.findOne({ email });
   if (existing) return c.json({ error: "User already exists" }, 400);
-
-  const newUser = await users.insertOne({ email, password });
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const newUser = await users.insertOne({ email, password: hashedPassword });
   return c.text("User registered, Please Login");
 });
 
 app.post("/login", async (c) => {
   const { email, password } = await c.req.json();
-  const users = User;
 
-  const user = await users.findOne({ email });
-  if (!user) return c.json({ error: "Invalid credentials" }, 401);
+  const user = await User.findOne({ email });
+  if (!user || !user.password)
+    return c.json({ error: "Invalid credentials" }, 401);
 
-  if (user.password !== password)
-    return c.json({ error: "Incorrect Password" }, 401);
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) return c.json({ error: "Incorrect password" }, 401);
 
   const token = await sign({ sub: email }, secret);
-  return c.json({ token, user });
+  return c.json({ token });
 });
 
 app.post("/emails/send", jwtMiddleware, async (c) => {
@@ -65,18 +65,17 @@ app.post("/emails/send", jwtMiddleware, async (c) => {
     const newEmail = await email.save();
     return c.json({ data: newEmail });
   } catch (err) {
-    console.error("Email send error:", err);
     return c.json({ error: "Failed to send email", details: String(err) }, 500);
   }
 });
 
-app.get("emails/inbox/recieved", jwtMiddleware, async (c) => {
+app.get("/emails/inbox/recieved", jwtMiddleware, async (c) => {
   const payload = c.get("jwtPayload");
   const emails = await Email.find({ to: payload.sub });
   return c.json({ data: emails });
 });
 
-app.get("emails/inbox/sent", jwtMiddleware, async (c) => {
+app.get("/emails/inbox/sent", jwtMiddleware, async (c) => {
   const payload = c.get("jwtPayload");
   const emails = await Email.find({ from: payload.sub });
   return c.json({ data: emails });
