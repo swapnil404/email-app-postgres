@@ -1,5 +1,6 @@
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
+import 'dotenv/config';
 
 export const pool = new Pool({
   connectionString: String(process.env.DATABASE_URL),
